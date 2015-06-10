@@ -1,0 +1,10 @@
+{
+  "name": "hashicorp/precise64",
+  "file": "precise64_011_virtualbox.box",
+  "description": "This box contains Ubuntu 12.04 LTS 64-bit.",
+  "provider": "virtualbox",
+  "version": "0.0.1",
+  "baseurl": "http://your.server.com/vagrant",
+  "server": "user@your.server.com",
+  "remotepath": "/path/to/your/webroot/vagrant"
+}
