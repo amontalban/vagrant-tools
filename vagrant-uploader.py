@@ -113,13 +113,24 @@ def generate_metadata(box, metadata=None):
 
 #-- Core script
 parser = argparse.ArgumentParser(description="This script uploads the .box file to server on specified path and update metadata file.")
-parser.add_argument("--name", metavar="name", help="The name of the box in the following syntax company/boxname")
-parser.add_argument("--file", metavar="file", help="The path to the .box file i.e /home/user/mybox.box")
-parser.add_argument("--provider", metavar="provider", help="The name of the provider for the box.")
-parser.add_argument("--description", metavar="description", help="The description of the box.")
-parser.add_argument("--version", metavar="version", help="The version number of the box.")
-parser.add_argument("--baseurl", metavar="baseurl", help="The base URL where box is going to be served.")
-parser.add_argument("--serverpath", metavar="serverpath", help="Full path to server in the following format username@fqdn.domain.com:/path/to/webroot")
+parser.add_argument("--config", "-c", metavar="config", help="Full path to defaults settings config file (In json format, check config.json)")
+parser.add_argument("--name", "-n", metavar="name", help="The name of the box in the following syntax company/boxname")
+parser.add_argument("--file", "-f", metavar="file", help="The path to the .box file i.e /home/user/mybox.box")
+parser.add_argument("--provider", "-p", metavar="provider", help="The name of the provider for the box.")
+parser.add_argument("--description", "-d", metavar="description", help="The description of the box.")
+parser.add_argument("--version", "-v", metavar="version", help="The version number of the box.")
+parser.add_argument("--baseurl", "-b", metavar="baseurl", help="The base URL where box is going to be served.")
+parser.add_argument("--serverpath", "-s", metavar="serverpath", help="Full path to server in the following format username@fqdn.domain.com:/path/to/webroot")
+
+args = parser.parse_args()
+
+# We check if --configfile is configured and use that instead of default name
+if args.config is not None:
+    if os.path.isfile(args.config):
+        default_settings = args.config
+    else:
+        display_error("Configuration file is not a file, please check config file path")
+        sys.exit(1)
 
 # We use default settings file if present
 if os.path.isfile(default_settings):
