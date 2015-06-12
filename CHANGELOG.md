@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## 0.0.1
+## 0.0.1 (Work in progress)
 
 IMPROVEMENTS:
 
   * Validate config values
   * Set a message for every step in the process
-
 
 BUG FIXES:
 
