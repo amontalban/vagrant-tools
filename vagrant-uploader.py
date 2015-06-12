@@ -2,7 +2,7 @@
 
 import os, sys, argparse, time, tempfile, re, json, shutil
 from urllib2 import Request, urlopen, URLError, HTTPError
-from hashlib import sha1
+import hashlib
 from collections import OrderedDict
 from pprint import pprint
 from fabric.api import run, env, put, hosts, sudo, settings, hide, get, local
@@ -26,11 +26,15 @@ class colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def display_error(error):
-    print colors.FAIL + error + colors.ENDC
+def display_error(message):
+    print colors.FAIL + colors.BOLD + colors.UNDERLINE + message + colors.ENDC
 
 
-def box_name_parser(name):
+def display_ok(message):
+    print colors.OKGREEN + message + colors.ENDC
+
+
+def boxname_parser(name):
     result = {}
     boxname_regex = "(?P<company>(?:^[a-zA-Z0-9\-\_\.]*))\/(?P<name>(?:[a-zA-Z0-9\-\_\.]*))"
 
@@ -43,33 +47,78 @@ def box_name_parser(name):
     return result
 
 
-def read_defaults(settings="metadata.json"):
+def load_settings(settings="metadata.json"):
     if os.path.isfile(settings):
         with open(settings) as defaults_file:
             defaults = json.load(defaults_file)
-            provider = defaults.get("provider")
-            file = defaults.get("file")
-            baseurl = defaults.get("baseurl")
-            if provider is None:
-                display_error("Provider not defined in metadata file, this is a required field.")
-                display_error("--->>>> Please set provider value in metadata file <<<<---")
-                sys.exit(1)
-            if file is None:
-                display_error("File not defined in metadata file, this is a required field.")
-                display_error("--->>>> Please set file value in metadata file <<<<---")
-                sys.exit(1)
-            if baseurl is None:
-                display_error("Base URL not defined in metadata file, this is a required field.")
-                display_error("--->>>> Please set baseurl value in metadata file <<<<---")
-                sys.exit(1)
 
-            if not file.lower().endswith('.box'):
+        return defaults
+
+
+def sha1_file(filename):
+   #This function returns the SHA-1 hash of (filename)
+
+   checksum = hashlib.sha1()
+
+   with open(filename,'rb') as file:
+
+       chunk = 0
+       while chunk != b'':
+           chunk = file.read(1024)
+           checksum.update(chunk)
+
+   return checksum.hexdigest()
+
+
+def validate_settings(config):
+
+    if config.get("provider") is None:
+        display_error("Provider not defined in metadata file, this is a required field.")
+        display_error("--->>>> Please set provider value in metadata file <<<<---")
+        sys.exit(1)
+
+    if config.get("file") is None:
+        display_error("File not defined in metadata file, this is a required field.")
+        display_error("--->>>> Please set file value in metadata file <<<<---")
+        sys.exit(1)
+    else:
+        if os.path.isfile(config.get("file")):
+            if not config.get("file").lower().endswith('.box'):
                 display_error("Box filename needs to ends with .box")
                 display_error("--->>>> Please change box filename in metadata file <<<<---")
                 sys.exit(1)
+        else:
+                display_error("Box filename path is not a file!")
+                display_error("--->>>> Please change box filename path in metadata file <<<<---")
+                sys.exit(1)
 
-            return defaults
+    if config.get("baseurl") is None:
+        display_error("Base URL not defined in metadata file, this is a required field.")
+        display_error("--->>>> Please set baseurl value in metadata file <<<<---")
+        sys.exit(1)
 
+    if config.get("remotepath") is None:
+        display_error("Remote path not defined in metadata file, this is a required field.")
+        display_error("--->>>> Please set remote path value in metadata file <<<<---")
+        sys.exit(1)
+
+    if config.get("server") is None:
+        display_error("Server not defined in metadata file, this is a required field.")
+        display_error("--->>>> Please set server value in metadata file <<<<---")
+        sys.exit(1)
+
+    if config.get("description") is None:
+        config["description"] = "No description provided."
+
+    if config.get("name") is not None:
+        parsedname = boxname_parser(config.get("name"))
+        config["company"] = parsedname.get("company")
+        config["name"] = parsedname.get("name")
+    else:
+        config["company"] = "undefined"
+        config["name"] = "undefined"
+
+    return config
 
 def generate_metadata(box, metadata=None):
 
@@ -79,9 +128,9 @@ def generate_metadata(box, metadata=None):
 
         entry = {}
         entry["name"] = box["provider"]
-        entry["url"] = box["baseurl"] + "/" + box["company"] + "/" + box["name"] + "/boxes/" + box["file"]
+        entry["url"] = box["baseurl"] + "/" + box["company"] + "/" + box["name"] + "/boxes/" + os.path.basename(box["file"])
         entry["checksum_type"] = "sha1"
-        entry["checksum"] = sha1(box["file"]).hexdigest()
+        entry["checksum"] = sha1_file(box["file"])
 
         providers = version
         providers["providers"] = [entry]
@@ -98,9 +147,9 @@ def generate_metadata(box, metadata=None):
 
         entry = {}
         entry["name"] = box["provider"]
-        entry["url"] = box["baseurl"] + "/" + box["company"] + "/" + box["name"] + "/boxes/" + box["file"]
+        entry["url"] = box["baseurl"] + "/" + box["company"] + "/" + box["name"] + "/boxes/" + os.path.basename(box["file"])
         entry["checksum_type"] = "sha1"
-        entry["checksum"] = sha1(box["file"]).hexdigest()
+        entry["checksum"] = sha1_file(box["file"])
 
         providers = version
         providers["providers"] = [entry]
@@ -134,43 +183,43 @@ if args.config is not None:
 
 # We use default settings file if present
 if os.path.isfile(default_settings):
-    if read_defaults(default_settings) is not None:
-        box = read_defaults(default_settings)
+    if load_settings(default_settings) is not None:
+        # Load settings
+        display_ok("Loading settings...")
+        config = load_settings(default_settings)
 
-        # Parse boxname in format company/boxname and add it to box dict
-        if box.get("name") is not None:
-            parsedname = box_name_parser(box.get("name"))
-            box["company"] = parsedname.get("company")
-            box["name"] = parsedname.get("name")
-        else:
-            box["company"] = "undefined"
-            box["name"] = "undefined"
+        box = validate_settings(config)
 
         # We create a temp folder where we are going to copy box and metadata
         # before uploading it to server
         if os.path.isfile(box.get("file")):
+            display_ok("Creating temp directory...")
             # Create a randomic temporary folder
             tempfolder = tempfile.mkdtemp()
             directory = os.path.realpath(os.path.join(tempfolder, box.get("company"), box.get("name")))
             os.makedirs(directory)
 
+            display_ok("Copying box file...")
             # Copy box to temp folder
             boxes = os.path.realpath(os.path.join(directory, "boxes"))
             os.makedirs(boxes)
             shutil.copy(box.get("file"), boxes)
 
+            display_ok("Checking current metadata...")
             metadata_url = box.get("baseurl") + "/" + box.get("company") + "/" + box.get("name")
             remote_metadata = Request(metadata_url)
             try:
                 response = urlopen(remote_metadata)
             except HTTPError as e:
                 if e.code == 404:
+                    display_ok("No current metadata found, creating it...")
                     # This is first upload of box
                     metadata = generate_metadata(box)
 
                     with open(directory + '/metadata.json', 'w') as output_file:
                         json.dump(metadata, output_file, sort_keys=True, indent=2, separators=(',', ': '))
 
+                    display_ok("Uploading box and metadata to repository...")
                     with hide('output','running','warnings'), settings(warn_only=True, host_string=box["server"]):
                         result = put(tempfolder + "/" + box.get("company"), box.get("remotepath"))
 
@@ -178,6 +227,8 @@ if os.path.isfile(default_settings):
                             display_error("--->>>> UPLOADING BOX FAILED! <<<<---")
                             display_error("Check Internet connection or access to remote server")
                             sys.exit(1)
+                        else:
+                            display_ok("Box " + box.get("company") + "/" + box.get("name") + " uploaded successfully!")
 
                     # Delete tempfolder
                     shutil.rmtree(tempfolder)
@@ -190,6 +241,7 @@ if os.path.isfile(default_settings):
                 display_error("Failed to connect to server. Reason: %s" % e.reason)
                 sys.exit(1)
             else:
+                display_ok("Updating box " + box.get("company") + "/" + box.get("name") + "...")
                 # Box was uploaded before, we need to update metadata
                 # and upload new version if it's not there
                 current_metadata = json.load(response)
@@ -207,6 +259,7 @@ if os.path.isfile(default_settings):
                     with open(directory + '/metadata.json', 'w') as output_file:
                         json.dump(metadata, output_file, sort_keys=True, indent=2, separators=(',', ': '))
 
+                    display_ok("Uploading box and metadata to repository...")
                     with hide('output','running','warnings'), settings(warn_only=True, host_string=box["server"]):
                         result = put(tempfolder + "/" + box.get("company"), box.get("remotepath"))
 
@@ -214,6 +267,9 @@ if os.path.isfile(default_settings):
                             display_error("--->>>> UPLOADING BOX FAILED! <<<<---")
                             display_error("Check Internet connection or access to remote server")
                             sys.exit(1)
+                        else:
+                            display_ok("Box " + box.get("company") + "/" + box.get("name") + " uploaded successfully!")
+
                 else:
                     display_error("--->>>> THIS BOX VERSION WAS ALREADY UPLOADED! <<<<---")
                     display_error("Please check box version")
