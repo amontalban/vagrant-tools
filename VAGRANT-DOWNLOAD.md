@@ -3,6 +3,7 @@
 This script is intended to be used when you want to download a Vagrant box from
  the repository. It's useful when for example you want to build a Packer image
 from a base box using [vagrant-ovf][1] builder.
+
 __Usage__
 
 ```
