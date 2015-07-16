@@ -5,7 +5,7 @@ A collection of Python scripts to manage Vagrant boxes in a private repository
 
 ### Private repository configuration
 
-The private repository can be configured with a [NGINX](1) server, ssh and a
+The private repository can be configured with a [NGINX][1] server, ssh and a
 unprivileged user. Basically the server is configured to serve the metadata.json
  file located in the box folder so Vagrant can get box information like versions
  and URLs for them.
@@ -86,32 +86,29 @@ server {
 The other thing you will need is a user with SSH access to the server and write
 rights in the configured path (/usr/share/nginx/html in this case). It's
 recommended to use public keys for SSH so you don't have to use passwords. For
-more info check this [guide](4).
+more info check this [guide][2].
 ### vagrant-upload
 
-For more information about this script please check the [documentation](2).
+For more information about this script please check the [documentation][3].
 
 ### vagrant-download
 
-For more information about this script please check the [documentation](3).
-
----
+For more information about this script please check the [documentation][4].
 
 ## CHANGELOG
 
-Check the [CHANGELOG](5) to know about recent changes.
+Check the [CHANGELOG][5] to know about recent changes.
 
 ## RELATED LINKS
 
-[Vagrant box format](6)
-[vube/vagrant-boxer](7)
-[Custom Vagrant Cloud Versioned Box Host](8)
-
+- [Vagrant box format][6]
+- [vube/vagrant-boxer][7]
+- [Custom Vagrant Cloud Versioned Box Host][8]
 
 [1]: http://nginx.org
-[2]: https://github.com/amontalban/vagrant-tools/blob/master/VAGRANT-UPLOAD.md
-[3]: https://github.com/amontalban/vagrant-tools/blob/master/VAGRANT-DOWNLOAD.md
-[4]: https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys--2
+[2]: https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys--2
+[3]: https://github.com/amontalban/vagrant-tools/blob/master/VAGRANT-UPLOAD.md
+[4]: https://github.com/amontalban/vagrant-tools/blob/master/VAGRANT-DOWNLOAD.md
 [5]: https://github.com/amontalban/vagrant-tools/blob/master/CHANGELOG.md
 [6]: http://docs.vagrantup.com/v2/boxes/format.html
 [7]: https://github.com/vube/vagrant-boxer
